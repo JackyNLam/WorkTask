@@ -51,6 +51,7 @@ class TaskWindow:
         #Add buttons at the bottom
         Button(self.FirstFrame, text="Start", width=20, command=self.start_working).grid(row = 8,column =2,padx=30,pady=30)
         Button(self.FirstFrame, text="Pause", width=20, command=self.pause_working).grid(row = 8,column =3,padx=30,pady=30)
+        Button(self.FirstFrame, text="TimeTable", width=20, command=self.Show_TimeTable).grid(row = 8,column =4,padx=30,pady=30)
         #Add timer info at the bottom
         self.show_lapse_time = Label(self.FirstFrame, text="")
         self.show_lapse_time.grid(row=9,column=2)
@@ -109,7 +110,9 @@ class TaskWindow:
         prior_duration = cur.execute("SELECT Actual_Time from MyTask WHERE TaskID={}".format(self.working_item)).fetchone()[0]
         duration = round(float(prior_duration)+duration,2)
         cur.execute("UPDATE MyTask SET Actual_Time={} WHERE TaskID={}".format(duration,self.working_item))
+        cur.execute("INSERT INTO TimeTrack(TaskID, Start_Time, End_Time) VALUES ({},'{}',datetime('now','localtime'))".format(self.working_item,datetime.datetime.fromtimestamp(self.start_time).strftime('%Y-%m-%d %H:%M:%S')))
         con.commit()
+        del self.working_item,self.start_time
         self.refresh_task_list("Pending")
                
     def update_timer(self):
@@ -118,8 +121,11 @@ class TaskWindow:
 
     def viewclick(self,dummy):
         self.update_task_info = Toplevel(self.master)
-        self.app = AmendTask(self.update_task_info)       
-
+        self.app = AmendTask(self.update_task_info)     
+    
+    def Show_TimeTable(self):
+        self.show_timetable_output = Toplevel(self.master)
+        self.app = TimeTable(self.show_timetable_output)
 
 class NewTask:#for adding new products to the pricetable
     def __init__(self, master):
@@ -199,6 +205,28 @@ class NoteWindow:
         self.master.destroy()
 
 
+class TimeTable:#for adding new products to the pricetable
+    def __init__(self, master):
+        self.master = master
+        master.geometry("800x300")
+        self.TimeTableFrame = Frame(master)
+        self.my_TimeTree = ttk.Treeview(self.TimeTableFrame)
+        self.my_TimeTree.grid(row=2,column=1,rowspan = 6,columnspan=4)
+        #set up columns for the tree view
+        self.my_TimeTree['columns'] = ('OrderID', 'Start_Time', 'End_Time', 'Description')
+        self.my_TimeTree.column("#0",width=0,stretch="NO")
+        self.my_TimeTree.column("OrderID",width=0,stretch="NO")
+        self.my_TimeTree.column("Start_Time",width=120,stretch="NO")
+        self.my_TimeTree.column("End_Time",width=120)
+        self.my_TimeTree.column("Description",width=200)
+        #set up column Name
+        self.my_TimeTree.heading('Start_Time', text='Start_Time', anchor='center')
+        self.my_TimeTree.heading('End_Time', text='End_Time', anchor='center')
+        self.my_TimeTree.heading('Description', text='Description', anchor='center')
+        RawOutput= cur.execute("SELECT TimeTrack.Start_Time,TimeTrack.End_Time,MyTask.description FROM TimeTrack INNER JOIN MyTask on TimeTrack.TaskID=MyTask.TaskID ORDER BY date(Start_Time) DESC,Start_Time ASC").fetchall()
+        CanvasOutput = '\n'.join([str(x) for x in RawOutput])
+        Label(self.TimeTableFrame, text="{}".format(CanvasOutput),font=(None, 16)).grid(row=1,column=1)
+        self.TimeTableFrame.pack()
 
 
  
@@ -208,8 +236,16 @@ cur = con.cursor()
 #Insert Statment
 # cur.execute("INSERT INTO MyTask(DueDate, Description, Est_Time, Actual_Time, Status, Notes) \
 #             VALUES ('2021-10-23','Write Programme',1,0.5,'Pending','This is a test')")
-#Select statement
+# cur.execute("CREATE TABLE TimeTrack (TrackRowID INTEGER PRIMARY KEY,TaskID INTEGER, Start_Time time, End_Time time);")
+# cur.execute("INSERT INTO TimeTrack(TaskID, Start_Time, End_Time) VALUES (10,'{}',datetime('now','localtime'))".format(datetime.datetime.now()))
 # cur.execute("SELECT * FROM MyTask").fetchall()
+# cur.execute("SELECT TimeTrack.*,MyTask.description FROM TimeTrack INNER JOIN MyTask on TimeTrack.TaskID=MyTask.TaskID ORDER BY datetime(Start_Time)").fetchall()
+# cur.execute("SELECT * FROM TimeTrack").fetchall()
+# cur.execute("SELECT date(Start_Time) FROM TimeTrack").fetchall()
+# ALTER TABLE MyTask ADD Start_Time time;
+# ALTER TABLE MyTask ADD End_Time time;
+# INSERT INTO MyTask(DueDate, Description, Est_Time, Actual_Time, Status, Notes,Start_Time,End_Time)
+# VALUES ('2021-10-23','Write Programme',60,0,'Pending','This is a test',datetime('now','localtime'),datetime('now','localtime','+60 minutes'));
 root = Tk()
 default_font = font.nametofont("TkDefaultFont") #font.families()
 default_font.configure(size = 11)
