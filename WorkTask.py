@@ -250,21 +250,69 @@ class TimeTable:#showing time tracking table
         self.my_TimeTree.heading('Start_Time', text='Start_Time', anchor='center')
         self.my_TimeTree.heading('End_Time', text='End_Time', anchor='center')
         self.my_TimeTree.heading('Description', text='Description', anchor='center')
+        self.my_TimeTree.bind('<Double-Button-1>',self.TimeTableviewclick)
         # RawOutput= cur.execute("SELECT TimeTrack.Start_Time,TimeTrack.End_Time,MyTask.description FROM TimeTrack INNER JOIN MyTask on TimeTrack.TaskID=MyTask.TaskID ORDER BY date(Start_Time) DESC,Start_Time ASC").fetchall()
         # CanvasOutput = '\n'.join([str(x) for x in RawOutput])
         # Label(self.TimeTableFrame, text="{}".format(""),font=(None, 16)).grid(row=1,column=1)
         #Fill TreeView with TimeTable
+        self.refresh_TimeTable()
+        # for row in cur.execute("SELECT TimeTrack.TrackRowID,TimeTrack.Start_Time,TimeTrack.End_Time,MyTask.description \
+        #                        FROM TimeTrack INNER JOIN MyTask on TimeTrack.TaskID=MyTask.TaskID\
+        #                            ORDER BY date(TimeTrack.Start_Time) DESC,TimeTrack.Start_Time ASC").fetchall():
+        #     try:
+        #         self.my_TimeTree.insert(parent="",index="end",iid=row[0],\
+        #                        values=(row[0],row[1],row[2],row[3]))
+        #     except Exception as E:
+        #         pass
+        #         print(E)
+        self.my_TimeTree.pack(fill="both", expand=True)
+        self.TimeTableFrame.pack(fill="both", expand=True)
+
+
+    def refresh_TimeTable(self):
+        self.my_TimeTree.delete(*self.my_TimeTree.get_children())
         for row in cur.execute("SELECT TimeTrack.TrackRowID,TimeTrack.Start_Time,TimeTrack.End_Time,MyTask.description \
                                FROM TimeTrack INNER JOIN MyTask on TimeTrack.TaskID=MyTask.TaskID\
-                                   ORDER BY date(TimeTrack.Start_Time) DESC,TimeTrack.Start_Time ASC").fetchall():
+                                   ORDER BY TimeTrack.Start_Time DESC").fetchall():
             try:
                 self.my_TimeTree.insert(parent="",index="end",iid=row[0],\
                                values=(row[0],row[1],row[2],row[3]))
             except Exception as E:
                 pass
                 print(E)
-        self.my_TimeTree.pack(fill="both", expand=True)
-        self.TimeTableFrame.pack(fill="both", expand=True)
+                
+    def TimeTableviewclick(self,dummy):
+        self.update_timetable = Toplevel(self.master)
+        self.app = EditTimeTable(self.update_timetable)  
+        
+        
+class EditTimeTable:#for changing Timetable detail
+    def __init__(self, master):
+        self.master = master
+        master.geometry("500x180")
+        self.ThrFrame = Frame(master)
+        Label(self.ThrFrame, text="Start Time",font=(None, 16)).grid(row=1,column=1)
+        self.StartTime = Entry(self.ThrFrame)
+        self.StartTime.grid(row=1,column=2)
+        self.StartTime.insert(0, app.app.my_TimeTree.set(app.app.my_TimeTree.selection()[0],"Start_Time"))
+        Label(self.ThrFrame, text="End Time",font=(None, 16)).grid(row=2,column=1)
+        self.EndTime = Entry(self.ThrFrame)
+        self.EndTime.grid(row=2,column=2)
+        self.EndTime.insert(0, app.app.my_TimeTree.set(app.app.my_TimeTree.selection()[0],"End_Time"))
+        Button(self.ThrFrame, text="Confirm", width=20, command=self.confirm_time_entry).grid(row=4,column=2,pady=20)
+        Button(self.ThrFrame, text="Delete", width=20, command=self.delete_time_entry).grid(row=5,column=2,pady=100)
+        self.ThrFrame.pack()
+        
+
+    def confirm_time_entry(self):
+        cur.execute("UPDATE TimeTrack SET Start_Time='{0}',End_Time='{1}' WHERE TrackRowID={2}"\
+         .format(self.StartTime.get(),self.EndTime.get(),app.app.my_TimeTree.selection()[0]))
+        con.commit()
+        app.app.refresh_TimeTable()
+        self.master.destroy()
+    def delete_time_entry(self):
+        pass
+    
 
 con = sqlite3.connect('TaskData.db')
 cur = con.cursor()
