@@ -7,7 +7,7 @@ Created on Sat Oct 23 12:10:39 2021
 """
 
 import sqlite3,time,datetime
-from tkinter import Tk,Frame,Label,StringVar,Button,Entry,Toplevel,ttk,font,Text
+from tkinter import Tk,Frame,Label,StringVar,Button,Entry,Toplevel,ttk,font,Text,messagebox
 
 class TaskWindow:
     def __init__(self, master):
@@ -62,6 +62,8 @@ class TaskWindow:
         self.my_tree.bind('<Double-Button-1>',self.viewclick)
         self.FirstFrame.pack(fill='both', expand=True)
         self.nwin=None # prevent muitiple window
+        # reminder for not tracking 1000 ms
+        self.pop_up_check=root.after(120000, self.Check_Tracking)
         
     def refresh_task_list(self,show_status):
         self.my_tree.delete(*self.my_tree.get_children())
@@ -146,6 +148,15 @@ class TaskWindow:
     def Show_TimeTable(self):
         self.show_timetable_output = Toplevel(self.master)
         self.app = TimeTable(self.show_timetable_output)
+    
+    def Check_Tracking(self):
+        if self.show_lapse_time['text'] == "":
+            print("You are not tracking!!!")
+            popup_root = Tk()
+            popup_root.withdraw()
+            messagebox.showinfo('Warning', 'You are not tracking!')
+            popup_root.destroy()
+        self.pop_up_check = root.after(300000, self.Check_Tracking) # run itself again after 1000 ms
 
 
 class NewTask:#for adding new task
@@ -314,6 +325,12 @@ class EditTimeTable:#for changing Timetable detail
         pass
     
 
+def Exit_Programme():
+    root.after_cancel(app.pop_up_check)
+    root.destroy()
+    
+
+
 con = sqlite3.connect('TaskData.db')
 cur = con.cursor()
 root = Tk()
@@ -321,6 +338,7 @@ default_font = font.nametofont("TkDefaultFont") #font.families()
 default_font.configure(size = 11)
 root.option_add("*Font", default_font)
 app = TaskWindow(root)
+root.protocol("WM_DELETE_WINDOW", Exit_Programme)
 root.mainloop()
 con.commit()
 con.close()
