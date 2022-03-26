@@ -261,20 +261,8 @@ class TimeTable:#showing time tracking table
         self.my_TimeTree.heading('End_Time', text='End_Time', anchor='center')
         self.my_TimeTree.heading('Description', text='Description', anchor='center')
         self.my_TimeTree.bind('<Double-Button-1>',self.TimeTableviewclick)
-        # RawOutput= cur.execute("SELECT TimeTrack.Start_Time,TimeTrack.End_Time,MyTask.description FROM TimeTrack INNER JOIN MyTask on TimeTrack.TaskID=MyTask.TaskID ORDER BY date(Start_Time) DESC,Start_Time ASC").fetchall()
-        # CanvasOutput = '\n'.join([str(x) for x in RawOutput])
-        # Label(self.TimeTableFrame, text="{}".format(""),font=(None, 16)).grid(row=1,column=1)
         #Fill TreeView with TimeTable
         self.refresh_TimeTable()
-        # for row in cur.execute("SELECT TimeTrack.TrackRowID,TimeTrack.Start_Time,TimeTrack.End_Time,MyTask.description \
-        #                        FROM TimeTrack INNER JOIN MyTask on TimeTrack.TaskID=MyTask.TaskID\
-        #                            ORDER BY date(TimeTrack.Start_Time) DESC,TimeTrack.Start_Time ASC").fetchall():
-        #     try:
-        #         self.my_TimeTree.insert(parent="",index="end",iid=row[0],\
-        #                        values=(row[0],row[1],row[2],row[3]))
-        #     except Exception as E:
-        #         pass
-        #         print(E)
         self.my_TimeTree.pack(fill="both", expand=True)
         self.TimeTableFrame.pack(fill="both", expand=True)
 
@@ -357,3 +345,18 @@ con.close()
 # cur.execute("SELECT date(Start_Time) FROM TimeTrack").fetchall()
 # cur.execute("INSERT INTO MyTask(DueDate, Description, Est_Time, Actual_Time, Status) \
 #     VALUES ('{}','{}','{}', 0, '{}')".format(self.DueDate.get(),self.Description.get(),self.Est_Time.get(),'Pending'))
+
+# RawOutput= cur.execute("SELECT TimeTrack.Start_Time,TimeTrack.End_Time,MyTask.description FROM TimeTrack INNER JOIN MyTask on TimeTrack.TaskID=MyTask.TaskID ORDER BY date(Start_Time) DESC,Start_Time ASC").fetchall()
+# CanvasOutput = '\n'.join([str(x) for x in RawOutput])
+# Label(self.TimeTableFrame, text="{}".format(""),font=(None, 16)).grid(row=1,column=1)
+
+#Fill TreeView with TimeTable
+# for row in cur.execute("SELECT TimeTrack.TrackRowID,TimeTrack.Start_Time,TimeTrack.End_Time,MyTask.description \
+#                        FROM TimeTrack INNER JOIN MyTask on TimeTrack.TaskID=MyTask.TaskID\
+#                            ORDER BY date(TimeTrack.Start_Time) DESC,TimeTrack.Start_Time ASC").fetchall():
+#     try:
+#         self.my_TimeTree.insert(parent="",index="end",iid=row[0],\
+#                        values=(row[0],row[1],row[2],row[3]))
+#     except Exception as E:
+#         pass
+#         print(E)
