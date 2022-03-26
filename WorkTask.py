@@ -1,3 +1,10 @@
+#!/usr/bin/env python3
+# -*- coding: utf-8 -*-
+"""
+Created on Sat Oct 23 12:10:39 2021
+@author: tsubasa
+"""
+
 import sqlite3,time,datetime
 from tkinter import Tk,Frame,Label,StringVar,Button,Entry,Toplevel,ttk,font,Text,messagebox
 
@@ -6,7 +13,7 @@ class TaskWindow:
         self.master = master
         self.FirstFrame = Frame(master)
         master.title("Task")
-        master.geometry('1100x600')
+        master.geometry('980x600')
         Label(self.FirstFrame, text="Status").grid(row=1,column=1)
         #Set up search box at the top
         self.tkvar = StringVar(master)
@@ -20,8 +27,8 @@ class TaskWindow:
         self.my_tree['columns'] = ('OrderID','Start_Time','End_Time','Description', 'Est_Time' , 'Actual_Time', 'Status')
         self.my_tree.column("#0",width=0,stretch="NO")
         self.my_tree.column("OrderID",width=0,stretch="NO")
-        self.my_tree.column("Start_Time",width=180)
-        self.my_tree.column("End_Time",width=180)
+        self.my_tree.column("Start_Time",width=145)
+        self.my_tree.column("End_Time",width=145)
         self.my_tree.column("Description",width=200)
         self.my_tree.column("Est_Time",width=80)
         self.my_tree.column("Actual_Time",width=80)
@@ -254,8 +261,20 @@ class TimeTable:#showing time tracking table
         self.my_TimeTree.heading('End_Time', text='End_Time', anchor='center')
         self.my_TimeTree.heading('Description', text='Description', anchor='center')
         self.my_TimeTree.bind('<Double-Button-1>',self.TimeTableviewclick)
+        # RawOutput= cur.execute("SELECT TimeTrack.Start_Time,TimeTrack.End_Time,MyTask.description FROM TimeTrack INNER JOIN MyTask on TimeTrack.TaskID=MyTask.TaskID ORDER BY date(Start_Time) DESC,Start_Time ASC").fetchall()
+        # CanvasOutput = '\n'.join([str(x) for x in RawOutput])
+        # Label(self.TimeTableFrame, text="{}".format(""),font=(None, 16)).grid(row=1,column=1)
         #Fill TreeView with TimeTable
         self.refresh_TimeTable()
+        # for row in cur.execute("SELECT TimeTrack.TrackRowID,TimeTrack.Start_Time,TimeTrack.End_Time,MyTask.description \
+        #                        FROM TimeTrack INNER JOIN MyTask on TimeTrack.TaskID=MyTask.TaskID\
+        #                            ORDER BY date(TimeTrack.Start_Time) DESC,TimeTrack.Start_Time ASC").fetchall():
+        #     try:
+        #         self.my_TimeTree.insert(parent="",index="end",iid=row[0],\
+        #                        values=(row[0],row[1],row[2],row[3]))
+        #     except Exception as E:
+        #         pass
+        #         print(E)
         self.my_TimeTree.pack(fill="both", expand=True)
         self.TimeTableFrame.pack(fill="both", expand=True)
 
@@ -322,3 +341,19 @@ root.protocol("WM_DELETE_WINDOW", Exit_Programme)
 root.mainloop()
 con.commit()
 con.close()
+
+
+
+#Depreciated code
+# cur.execute("CREATE TABLE MyTask (TaskID INTEGER PRIMARY KEY,DueDate date, Description text, Est_Time float, Actual_Time float, Status text ,Notes text);")
+#Insert Statment
+# cur.execute("INSERT INTO MyTask(DueDate, Description, Est_Time, Actual_Time, Status, Notes) \
+#             VALUES ('2021-10-23','Write Programme',1,0.5,'Pending','This is a test')")
+# cur.execute("CREATE TABLE TimeTrack (TrackRowID INTEGER PRIMARY KEY,TaskID INTEGER, Start_Time time, End_Time time);")
+# cur.execute("INSERT INTO TimeTrack(TaskID, Start_Time, End_Time) VALUES (10,'{}',datetime('now','localtime'))".format(datetime.datetime.now()))
+# cur.execute("SELECT * FROM MyTask").fetchall()
+# cur.execute("SELECT TimeTrack.*,MyTask.description FROM TimeTrack INNER JOIN MyTask on TimeTrack.TaskID=MyTask.TaskID ORDER BY datetime(Start_Time)").fetchall()
+# cur.execute("SELECT * FROM TimeTrack").fetchall()
+# cur.execute("SELECT date(Start_Time) FROM TimeTrack").fetchall()
+# cur.execute("INSERT INTO MyTask(DueDate, Description, Est_Time, Actual_Time, Status) \
+#     VALUES ('{}','{}','{}', 0, '{}')".format(self.DueDate.get(),self.Description.get(),self.Est_Time.get(),'Pending'))
