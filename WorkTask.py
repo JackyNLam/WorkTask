@@ -210,7 +210,7 @@ class AmendTask:#for changing task detail
         self.Act_Time = cur.execute("SELECT Actual_Time FROM MyTask WHERE TaskID ={}".format(app.my_tree.selection()[0])).fetchone()[0]
         cur.execute("UPDATE MyTask SET Start_Time='{0}',Description='{1}',\
                     Est_Time={2},End_Time=datetime('{0}','+{3} minutes') WHERE TaskID={4}"\
-         .format(self.StartTime.get(),self.Description.get(),self.Est_Time.get(),float(self.Est_Time.get())-self.Act_Time,app.my_tree.selection()[0]))
+         .format(self.StartTime.get(),self.Description.get(),self.Est_Time.get(),float(self.Est_Time.get()),app.my_tree.selection()[0]))
         con.commit()
         app.refresh_task_list("Pending")
         self.master.destroy()
