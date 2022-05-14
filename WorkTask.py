@@ -371,34 +371,3 @@ root.protocol("WM_DELETE_WINDOW", Exit_Programme)
 root.mainloop()
 con.commit()
 con.close()
-
-
-
-#Depreciated code
-# cur.execute("CREATE TABLE MyTask (TaskID INTEGER PRIMARY KEY,DueDate date, Description text, Est_Time float, Actual_Time float, Status text ,Notes text,Master_ID INTEGER);")
-#Insert Statment
-# cur.execute("INSERT INTO MyTask(DueDate, Description, Est_Time, Actual_Time, Status, Notes) \
-#             VALUES ('2021-10-23','Write Programme',1,0.5,'Pending','This is a test')")
-# cur.execute("CREATE TABLE TimeTrack (TrackRowID INTEGER PRIMARY KEY,TaskID INTEGER, Start_Time time, End_Time time);")
-# cur.execute("INSERT INTO TimeTrack(TaskID, Start_Time, End_Time) VALUES (10,'{}',datetime('now','localtime'))".format(datetime.datetime.now()))
-# cur.execute("SELECT * FROM MyTask").fetchall()
-# cur.execute("SELECT TimeTrack.*,MyTask.description FROM TimeTrack INNER JOIN MyTask on TimeTrack.TaskID=MyTask.TaskID ORDER BY datetime(Start_Time)").fetchall()
-# cur.execute("SELECT * FROM TimeTrack").fetchall()
-# cur.execute("SELECT date(Start_Time) FROM TimeTrack").fetchall()
-# cur.execute("INSERT INTO MyTask(DueDate, Description, Est_Time, Actual_Time, Status) \
-#     VALUES ('{}','{}','{}', 0, '{}')".format(self.DueDate.get(),self.Description.get(),self.Est_Time.get(),'Pending'))
-
-# RawOutput= cur.execute("SELECT TimeTrack.Start_Time,TimeTrack.End_Time,MyTask.description FROM TimeTrack INNER JOIN MyTask on TimeTrack.TaskID=MyTask.TaskID ORDER BY date(Start_Time) DESC,Start_Time ASC").fetchall()
-# CanvasOutput = '\n'.join([str(x) for x in RawOutput])
-# Label(self.TimeTableFrame, text="{}".format(""),font=(None, 16)).grid(row=1,column=1)
-
-#Fill TreeView with TimeTable
-# for row in cur.execute("SELECT TimeTrack.TrackRowID,TimeTrack.Start_Time,TimeTrack.End_Time,MyTask.description \
-#                        FROM TimeTrack INNER JOIN MyTask on TimeTrack.TaskID=MyTask.TaskID\
-#                            ORDER BY date(TimeTrack.Start_Time) DESC,TimeTrack.Start_Time ASC").fetchall():
-#     try:
-#         self.my_TimeTree.insert(parent="",index="end",iid=row[0],\
-#                        values=(row[0],row[1],row[2],row[3]))
-#     except Exception as E:
-#         pass
-#         print(E)
