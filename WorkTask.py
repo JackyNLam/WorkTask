@@ -48,8 +48,9 @@ class TaskWindow:
         #Add buttons on the right
         Button(self.FirstFrame, text="Add Task", width=20, command=self.add_task).grid(row = 4, column =5,padx=30)
         Button(self.FirstFrame, text="Delete Task", width=20, command=self.delete_task).grid(row = 5, column =5,padx=30)
-        Button(self.FirstFrame, text="Notes", width=20, command=self.Task_Note).grid(row = 6,column =5,padx=30)
-        Button(self.FirstFrame, text="Complete", width=20, command=self.mark_as_complete).grid(row = 7,column = 5,padx=30)
+        Button(self.FirstFrame, text="Link Task", width=20, command=self.Link_Master_Task).grid(row = 6,column =5,padx=30)
+        Button(self.FirstFrame, text="Notes", width=20, command=self.Task_Note).grid(row = 7,column =5,padx=30)
+        Button(self.FirstFrame, text="Complete", width=20, command=self.mark_as_complete).grid(row = 8,column = 5,padx=30)
         #Add buttons at the bottom
         Button(self.FirstFrame, text="Start", width=20, command=self.start_working).grid(row = 10,column =2,padx=0,pady=30)
         Button(self.FirstFrame, text="Pause", width=20, command=self.pause_working).grid(row = 10,column =3,padx=0,pady=30)
@@ -108,10 +109,10 @@ class TaskWindow:
         for rowid in self.my_tree.selection():
             self.Est_Time = self.my_tree.set(rowid,"Est_Time")
             self.Act_Time = self.my_tree.set(rowid,"Actual_Time")
-            cur.execute("UPDATE MyTask SET Start_Time=datetime('now','localtime'),End_Time=datetime('now','+{0} minutes') WHERE TaskID={1}"\
-             .format(float(self.Est_Time)-float(self.Act_Time),rowid))
+            cur.execute("UPDATE MyTask SET Start_Time=datetime('now','localtime'),End_Time=datetime('now','localtime','+{0} minutes') WHERE TaskID={1}"\
+             .format(float(self.Est_Time),rowid))
             con.commit()
-            app.refresh_task_list("Pending")
+            app.refresh_task_list(self.tkvar.get())
 
     def filter_by_status(self):
         show_status = self.tkvar.get()
@@ -126,15 +127,28 @@ class TaskWindow:
         self.update_timer()
     
     def pause_working(self):
-        root.after_cancel(self.running_timer)
-        self.show_lapse_time['text'] = ""
-        duration = (time.time() - self.start_time)/60
-        cur.execute("INSERT INTO TimeTrack(TaskID, Start_Time, End_Time) VALUES ({},'{}',datetime('now','localtime'))".format(self.working_item,datetime.datetime.fromtimestamp(self.start_time).strftime('%Y-%m-%d %H:%M:%S')))
-        duration = round(float(cur.execute("SELECT SUM(JULIANDAY(TimeTrack.End_Time) - JULIANDAY(TimeTrack.Start_Time)) FROM TimeTrack GROUP BY TimeTrack.TaskID HAVING TimeTrack.TaskID={}".format(self.working_item)).fetchone()[0]*24*60),2)
+        try:
+            #Case for pressed start button then press pause button
+            root.after_cancel(self.running_timer)
+            self.show_lapse_time['text'] = ""
+            duration = (time.time() - self.start_time)/60
+            #Get Master ID from the sub task
+            self.Master_ID_record = cur.execute("SELECT Master_ID FROM MyTask where TaskID='{}'".format(self.working_item)).fetchall()[0][0]
+            if self.Master_ID_record==None: self.Master_ID_record="NULL"
+            #Record to timetable
+            cur.execute("INSERT INTO TimeTrack(TaskID, Start_Time, End_Time,Master_ID) VALUES ({},'{}',datetime('now','localtime'),{})".format(self.working_item,datetime.datetime.fromtimestamp(self.start_time).strftime('%Y-%m-%d %H:%M:%S'),self.Master_ID_record))
+        except:#Case for pressing pause button only to update the actual time
+            self.working_item = self.my_tree.selection()[0]
+            self.start_time = None
+        #Get duration from the Timetable
+        #difference in days group by task id then master id, condition:(taskid or masterid)=selected_taskid
+        duration = round(float(cur.execute("SELECT SUM(TIME_SPENT) FROM (\
+                SELECT SUM(JULIANDAY(TimeTrack.End_Time) - JULIANDAY(TimeTrack.Start_Time)) AS TIME_SPENT FROM TimeTrack \
+                GROUP BY TimeTrack.TaskID,TimeTrack.Master_ID HAVING TimeTrack.TaskID={0} OR TimeTrack.Master_ID={0})".format(self.working_item)).fetchone()[0]*24*60),2)
         cur.execute("UPDATE MyTask SET Actual_Time={} WHERE TaskID={}".format(duration,self.working_item))
         con.commit()
         del self.working_item,self.start_time
-        self.refresh_task_list("Pending")
+        self.refresh_task_list(self.tkvar.get())
                
     def update_timer(self):
        self.show_lapse_time['text'] = "Time lapsed for: {} min.".format(round((time.time() - self.start_time)/60,0))
@@ -147,6 +161,9 @@ class TaskWindow:
     def Show_TimeTable(self):
         self.show_timetable_output = Toplevel(self.master)
         self.app = TimeTable(self.show_timetable_output)
+    
+    def Link_Master_Task(self):
+        self.app = LinkMasterTask(Toplevel(self.master))
     
     def Check_Tracking(self):
         if self.show_lapse_time['text'] == "":
@@ -212,9 +229,38 @@ class AmendTask:#for changing task detail
                     Est_Time={2},End_Time=datetime('{0}','+{3} minutes') WHERE TaskID={4}"\
          .format(self.StartTime.get(),self.Description.get(),self.Est_Time.get(),float(self.Est_Time.get()),app.my_tree.selection()[0]))
         con.commit()
-        app.refresh_task_list("Pending")
+        app.refresh_task_list(app.tkvar.get())
         self.master.destroy()
         
+
+class LinkMasterTask:#for changing Timetable detail
+    def __init__(self, master):
+        self.master = master
+        master.geometry("500x180")
+        self.MTFrame = Frame(master)
+        #Set up combo box variable
+        self.tkvar_MT = StringVar(master)
+        self.myOption_MT = ttk.Combobox(self.MTFrame, width = 30, textvariable = self.tkvar_MT)
+        self.ToDoTaskList=list()
+        for rows in cur.execute("SELECT Description FROM MyTask where status='ToDo'").fetchall():
+            self.ToDoTaskList.append(rows[0])
+        self.myOption_MT['values'] = self.ToDoTaskList
+        
+        #Set up output and combo box location
+        Label(self.MTFrame, text="Master Task",font=(None, 16)).grid(row=1,column=1)
+        self.myOption_MT.grid(row = 2, column = 1)
+        Label(self.MTFrame, text="Selected Task:\n{}".format(app.my_tree.set(app.my_tree.selection()[0],"Description")),font=(None, 16)).grid(row=3,column=1)
+        Button(self.MTFrame, text="Confirm", width=20, command=self.confirm_link_task).grid(row=4,column=1,pady=20)
+        self.MTFrame.pack()
+        
+    def confirm_link_task(self):
+        #get master id from combo box input
+        self.MasterTaskID = cur.execute("SELECT TaskID FROM MyTask where status='ToDo' and Description='{}'".format(self.tkvar_MT.get())).fetchall()[0][0]
+        #update selected task with master id
+        cur.execute("UPDATE MyTask SET Master_ID='{0}' WHERE TaskID={1}".format(self.MasterTaskID,app.my_tree.set(app.my_tree.selection()[0],"OrderID")))
+        con.commit()
+        self.master.destroy()
+
 
 class NoteWindow: #Show notes for the task
     def __init__(self, master):
@@ -298,18 +344,14 @@ class EditTimeTable:#for changing Timetable detail
         self.EndTime.grid(row=2,column=2)
         self.EndTime.insert(0, app.app.my_TimeTree.set(app.app.my_TimeTree.selection()[0],"End_Time"))
         Button(self.ThrFrame, text="Confirm", width=20, command=self.confirm_time_entry).grid(row=4,column=2,pady=20)
-        Button(self.ThrFrame, text="Delete", width=20, command=self.delete_time_entry).grid(row=5,column=2,pady=100)
         self.ThrFrame.pack()
         
-
     def confirm_time_entry(self):
         cur.execute("UPDATE TimeTrack SET Start_Time='{0}',End_Time='{1}' WHERE TrackRowID={2}"\
          .format(self.StartTime.get(),self.EndTime.get(),app.app.my_TimeTree.selection()[0]))
         con.commit()
         app.app.refresh_TimeTable()
         self.master.destroy()
-    def delete_time_entry(self):
-        pass
     
 
 def Exit_Programme():
@@ -333,7 +375,7 @@ con.close()
 
 
 #Depreciated code
-# cur.execute("CREATE TABLE MyTask (TaskID INTEGER PRIMARY KEY,DueDate date, Description text, Est_Time float, Actual_Time float, Status text ,Notes text);")
+# cur.execute("CREATE TABLE MyTask (TaskID INTEGER PRIMARY KEY,DueDate date, Description text, Est_Time float, Actual_Time float, Status text ,Notes text,Master_ID INTEGER);")
 #Insert Statment
 # cur.execute("INSERT INTO MyTask(DueDate, Description, Est_Time, Actual_Time, Status, Notes) \
 #             VALUES ('2021-10-23','Write Programme',1,0.5,'Pending','This is a test')")
